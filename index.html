@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Resources</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #1a1a1a;
+            font-family: Arial, sans-serif;
+            color: #fff;
+        }
+
+        .container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+        }
+
+        .vault {
+            background-color: #2a2a2a;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+            text-align: center;
+            width: 300px;
+        }
+
+        .vault h2 {
+            color: #00ff00;
+            margin-bottom: 20px;
+        }
+
+        .vault input {
+            width: 90%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #00ff00;
+            border-radius: 5px;
+            background-color: #1a1a1a;
+            color: #fff;
+        }
+
+        .vault button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #00ff00; 
+            border: none;
+            border-radius: 5px;
+            color: #1a1a1a;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .vault button:hover {
+            background-color: #00cc00; 
+        }
+
+        .warn {
+            color: #a8b3a7;
+            font-size: 15px;
+        }
+
+        .photos {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            width: 100%;
+            max-width: 800px;
+            position: relative;
+        }
+
+        .photos-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 10px;
+            background-color: #2a2a2a;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+
+        .photos-header input[type="file"] {
+            background-color: #00ff00;
+            padding: 10px;
+            border-radius: 5px;
+            color: #1a1a1a;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .photos-header h2 {
+            margin: 0;
+            color: #00ff00;
+        }
+
+        .logout-btn {
+            background-color: #ff0000;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .logout-btn:hover {
+            background-color: #cc0000;
+        }
+
+        .photo-gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 60px;
+            padding-top: 60px; 
+        }
+
+        .photo-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .photo-gallery img {
+            width: fit-content;
+            max-width: 200px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .photo-gallery img:hover {
+            opacity: 0.8;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 0, 0, 0.8);
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            display: none;
+        }
+
+        .photo-container:hover .delete-btn {
+            display: block;
+        }
+
+        .expanded {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(2);
+            z-index: 1000;
+            max-width: 90%;
+            max-height: 90%;
+            cursor: zoom-out;
+        }
+
+        @media (max-width: 600px) {
+            .photo-gallery img {
+                width: calc(50% - 10px);
+            }
+        }
+
+        @media (max-width: 400px) {
+            .photo-gallery img {
+                width: calc(100% - 10px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="vault">
+            <h2>Photo Vault</h2>
+            <form id="loginForm">
+                <input type="text" id="username" placeholder="Enter your name" required>
+                <input type="password" id="pin" placeholder="Enter your PIN" required>
+                <button type="submit">Login</button>
+                <button type="button" id="createAccountBtn">Create Account</button>
+            </form>
+            <p class="warn">These credentials are linked to THIS browser and device to prevent getting hacked. If you clear your cookies and data or are using any form of incognito mode that does not save cookies, it will clear and/or not save your photos...</p>
+        </div>
+    </div>
+
+    <div class="photos">
+        <div class="photos-header">
+            <input type="file" id="uploadInput" accept="image/*" />
+        </div>
+        <div id="photoGallery" class="photo-gallery"></div>
+    </div>
+
+    <script>
+        // js credit: Made with the HELP of ChatGPT and only for a bit of the javascript none of the html or css.
+
+        function getAccounts() {
+            return JSON.parse(localStorage.getItem('accounts')) || {};
+        }
+
+        function saveAccounts(accounts) {
+            localStorage.setItem('accounts', JSON.stringify(accounts));
+        }
+
+        function getPhotos(username) {
+            return JSON.parse(localStorage.getItem('photos_' + username)) || [];
+        }
+
+        function savePhotos(username, photos) {
+            localStorage.setItem('photos_' + username, JSON.stringify(photos));
+        }
+
+        function displayPhotos(username) {
+            const photoGallery = document.getElementById('photoGallery');
+            photoGallery.innerHTML = '';
+
+            const photos = getPhotos(username);
+
+            photos.forEach((photo, index) => {
+                const photoContainer = document.createElement('div');
+                photoContainer.classList.add('photo-container');
+
+                const img = document.createElement('img');
+                img.src = photo;
+
+                img.addEventListener('click', function() {
+                    if (img.classList.contains('expanded')) {
+                        img.classList.remove('expanded');
+                    } else {
+                        document.querySelectorAll('.expanded').forEach(expandedImg => {
+                            expandedImg.classList.remove('expanded');
+                        });
+                        img.classList.add('expanded');
+                    }
+                });
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.classList.add('delete-btn');
+                deleteBtn.textContent = 'Delete';
+
+                deleteBtn.addEventListener('click', function(event) {
+                    event.stopPropagation();
+                    if (confirm('Delete this photo?')) {
+                        const photos = getPhotos(username);
+                        photos.splice(index, 1);
+                        savePhotos(username, photos);
+                        displayPhotos(username);
+                    }
+                });
+
+                photoContainer.appendChild(img);
+                photoContainer.appendChild(deleteBtn);
+                photoGallery.appendChild(photoContainer);
+            });
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const pin = document.getElementById('pin').value;
+
+            const accounts = getAccounts();
+
+            if (accounts[username] && accounts[username] === pin) {
+
+                document.querySelector(".container").style.display = "none";
+                document.querySelector(".photos").style.display = "flex";
+
+                displayPhotos(username);
+
+                const uploadInput = document.getElementById('uploadInput');
+                uploadInput.addEventListener('change', function() {
+                    const file = uploadInput.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const photos = getPhotos(username);
+                            photos.push(e.target.result);
+                            savePhotos(username, photos);
+                            displayPhotos(username);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            } else {
+                alert('Invalid name or PIN. Please try again.');
+            }
+        });
+
+        document.getElementById('createAccountBtn').addEventListener('click', function() {
+            const username = prompt('Enter a username:');
+            const pin = prompt('Enter a PIN:');
+
+            if (username && pin) {
+                const accounts = getAccounts();
+
+                if (accounts[username]) {
+                    alert('Username already taken. Please choose another.');
+                } else {
+                    accounts[username] = pin;
+                    saveAccounts(accounts);
+                    alert('Account created successfully!');
+                }
+            } else {
+                alert('Username and PIN cannot be empty.');
+            }
+        });
+    </script>
+</body>
+</html>
